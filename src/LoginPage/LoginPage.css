@@ -6,15 +6,17 @@
 }
 
 body {
-	background: #f6f5f7;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	flex-direction: column;
-	font-family: 'Montserrat', sans-serif;
-	height: 100vh;
-	margin: -20px 0 50px;
+    background: url('/image.jpg') no-repeat center center fixed;
+    background-size: cover;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    font-family: 'Montserrat', sans-serif;
+    height: 100vh;
+    margin: -20px 0 50px;
 }
+
 
 h1 {
 	font-weight: bold;
@@ -38,7 +40,7 @@ span {
 }
 
 a {
-	color: #333;
+	color: #540000;
 	font-size: 14px;
 	text-decoration: none;
 	margin: 15px 0;
@@ -248,7 +250,7 @@ footer i {
 }
 
 footer a {
-    color: #3c97bf;
+    color: #FF4B2B;
     text-decoration: none;
 }
 
@@ -270,4 +272,10 @@ footer a {
 	cursor: pointer;
 	color: gray;
   }
-  
+
+  .toggle-button {
+	margin-top: 16px;
+  }
+  .login-button {
+	margin-top: 20px;
+  }

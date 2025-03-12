@@ -1,129 +1,159 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Card, CardContent, Typography, Grid, Paper, Box } from "@mui/material";
+import { Box, Button, Card, CardContent, Typography, Grid } from "@mui/material";
 
-// Mock data for students
-const mockStudents = [
-  { rollNumber: "CS001", name: "elton", department: "CS" },
-  { rollNumber: "ME001", name: "arjun", department: "mech" },
-  { rollNumber: "ME002", name: "edgar", department: "CS" },
-  { rollNumber: "ME002", name: "febin", department: "mech" },
-  { rollNumber: "CS003", name: "hormise", department: "cs" },
-  { rollNumber: "CS003", name: "ashwin", department: "cs" },
-  { rollNumber: "ME004", name: "anwin", department: "MECH" },
-];
+// Subjects for CS & ECE Semester 6 (KTU)
+const csSubjects = ["Machine Learning", "Compiler Design", "Cloud Computing", "Artificial Intelligence", "Cyber Security"];
+const eceSubjects = ["Embedded Systems", "VLSI Design", "Digital Signal Processing", "Communication Networks", "Wireless Systems"];
+
+// Faculty list
+const facultyList = Array.from({ length: 50 }, (_, i) => `Faculty ${i + 1}`);
+
+// Function to shuffle an array
+const shuffleArray = (array) => array.sort(() => Math.random() - 0.5);
+
+// Function to generate a random timetable without repeating subjects
+const generateRandomTimetable = (subjects, usedSubjects) => {
+  let remainingSubjects = subjects.filter(subject => !usedSubjects.includes(subject));
+  if (remainingSubjects.length === 0) remainingSubjects = [...subjects]; // Reset if all subjects are used
+  usedSubjects.length = 0; // Clear previous subjects
+  shuffleArray(remainingSubjects);
+  usedSubjects.push(...remainingSubjects);
+  return remainingSubjects.map((subject, index) => ({
+    subject,
+    date: `2025-03-${(index + 1) * 2}` // Randomized date pattern
+  }));
+};
+
+// Function to generate random students
+const generateRandomStudents = (department) => {
+  const names = ["Elton", "Arjun", "Edgar", "Febin", "Hormise", "Ashwin", "Anwin", "Rajesh", "Vikram", "Sanjay"];
+  return shuffleArray(Array.from({ length: 10 }, (_, i) => ({
+    rollNumber: `${department}${i + 1}`,
+    name: names[i % names.length],
+    department
+  })));
+};
+
+// Function to allocate seating, ensuring same students don’t sit together
+const allocateSeating = (students, previousSeating) => {
+  let shuffledStudents;
+  do {
+    shuffledStudents = shuffleArray([...students]);
+  } while (previousSeating.some(row => row.every(student => shuffledStudents.includes(student))));
+
+  const seating = [];
+  for (let i = 0; i < shuffledStudents.length; i += 2) {
+    seating.push([shuffledStudents[i], shuffledStudents[i + 1] || {}]); // Pair students
+  }
+  return seating;
+};
+
+// Function to assign faculty to different rooms, ensuring they don’t get the same room again
+const assignFacultyToRooms = (faculty, previousAssignments) => {
+  let shuffledFaculty;
+  do {
+    shuffledFaculty = shuffleArray([...faculty]);
+  } while (shuffledFaculty.some((faculty, index) => faculty === previousAssignments[index]));
+
+  return shuffledFaculty.map((faculty, index) => ({
+    faculty,
+    room: `Room ${index + 1}`
+  }));
+};
 
 export const AdminDashboard = () => {
-  const [timetable, setTimetable] = useState([]);
-  const [seatingAllocation, setSeatingAllocation] = useState([]);
+  const [usedCsSubjects, setUsedCsSubjects] = useState([]);
+  const [usedEceSubjects, setUsedEceSubjects] = useState([]);
+  const [csTimetable, setCsTimetable] = useState(generateRandomTimetable(csSubjects, usedCsSubjects));
+  const [eceTimetable, setEceTimetable] = useState(generateRandomTimetable(eceSubjects, usedEceSubjects));
+  const [csStudents, setCsStudents] = useState(generateRandomStudents("CS"));
+  const [eceStudents, setEceStudents] = useState(generateRandomStudents("ECE"));
+  const [previousCsSeating, setPreviousCsSeating] = useState([]);
+  const [previousEceSeating, setPreviousEceSeating] = useState([]);
+  const [csSeating, setCsSeating] = useState(allocateSeating(csStudents, previousCsSeating));
+  const [eceSeating, setEceSeating] = useState(allocateSeating(eceStudents, previousEceSeating));
+  const [previousFacultyAssignments, setPreviousFacultyAssignments] = useState([]);
+  const [facultyAssignments, setFacultyAssignments] = useState(assignFacultyToRooms(facultyList, previousFacultyAssignments));
   const navigate = useNavigate();
 
-  // Function to auto-generate timetable
-  const generateTimetable = () => {
-    const newTimetable = [
-      { subject: "electronics", date: "2025-03-01" },
-      { subject: "computer science", date: "2025-03-03" },
-      { subject: "graphics", date: "2025-03-05" },
-      { subject: "civil", date: "2025-03-05" },
-    ];
-    setTimetable(newTimetable);
+  // Generate new random timetable and seating allocation
+  const regenerateTimetableAndSeating = () => {
+    setCsTimetable(generateRandomTimetable(csSubjects, usedCsSubjects));
+    setEceTimetable(generateRandomTimetable(eceSubjects, usedEceSubjects));
+    setCsStudents(generateRandomStudents("CS"));
+    setEceStudents(generateRandomStudents("ECE"));
+    setPreviousCsSeating(csSeating);
+    setPreviousEceSeating(eceSeating);
+    setCsSeating(allocateSeating(csStudents, previousCsSeating));
+    setEceSeating(allocateSeating(eceStudents, previousEceSeating));
   };
 
-  // Function to allocate seating
-  const allocateSeating = () => {
-    const rows = [];
-    const studentsCopy = [...mockStudents];
-    while (studentsCopy.length > 0) {
-      const row = [];
-      const student1 = studentsCopy.shift();
-      row.push(student1);
-      const student2 = studentsCopy.find((s) => s.department !== student1.department);
-      if (student2) {
-        studentsCopy.splice(studentsCopy.indexOf(student2), 1);
-        row.push(student2);
-      }
-      rows.push(row);
-    }
-    setSeatingAllocation(rows);
+  // Assign faculty to different rooms
+  const regenerateFacultyAssignments = () => {
+    setPreviousFacultyAssignments(facultyAssignments.map(assign => assign.faculty));
+    setFacultyAssignments(assignFacultyToRooms(facultyList, previousFacultyAssignments));
   };
-
-  // Logout function
-  const handleLogout = () => {
-    navigate("/"); // Redirects to login page
-  };
-
-  useEffect(() => {
-    generateTimetable();
-    allocateSeating();
-  }, []);
 
   return (
-    <Box style={{ padding: "24px", height: "100vh" }}>
-      <Paper elevation={3} style={{ padding: "24px", borderRadius: "16px" }}>
-        {/* Header Section with Logout Button */}
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4" style={{ fontWeight: "bold" }}>
-            Admin Dashboard
-          </Typography>
-          <Button variant="contained" color="error" onClick={handleLogout}>
-            Logout
-          </Button>
-        </Box>
-
-        {/* Buttons */}
-        <Box display="flex" gap={2} mb={3}>
-          <Button variant="contained" color="primary" onClick={generateTimetable}>
-            Generate Timetable
-          </Button>
-          <Button variant="contained" color="secondary" onClick={allocateSeating}>
-            Allocate Seating
-          </Button>
-        </Box>
+    <Box sx={{ display: "flex", height: "100vh", background: "#f4f4f4", p: 3 }}>
+      <Box sx={{ flexGrow: 1 }}>
 
         {/* Timetable Section */}
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
-          Timetable
+        <Typography variant="h5" fontWeight="bold" mt={4} gutterBottom>
+          📅 Timetable (CS Semester 6)
         </Typography>
         <Grid container spacing={3}>
-          {timetable.map((item, index) => (
+          {csTimetable.map((item, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>
-              <Card style={{ borderRadius: "12px", boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)" }}>
+              <Card>
                 <CardContent>
-                  <Typography variant="body1" fontWeight="bold">
-                    Subject: {item.subject}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Date: {item.date}
-                  </Typography>
+                  <Typography variant="body1" fontWeight="bold">{item.subject}</Typography>
+                  <Typography variant="body2">Date: {item.date}</Typography>
                 </CardContent>
               </Card>
             </Grid>
           ))}
         </Grid>
 
-        {/* Seating Allocation Section */}
         <Typography variant="h5" fontWeight="bold" mt={4} gutterBottom>
-          Seating Allocation
+          📅 Timetable (ECE Semester 6)
         </Typography>
         <Grid container spacing={3}>
-          {seatingAllocation.map((row, index) => (
-            <Grid item xs={12} key={index}>
-              <Card style={{ borderRadius: "12px", boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)" }}>
+          {eceTimetable.map((item, index) => (
+            <Grid item xs={12} sm={6} md={4} key={index}>
+              <Card>
                 <CardContent>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Row {index + 1}
-                  </Typography>
-                  {row.map((student, i) => (
-                    <Typography key={i} variant="body2" color="textSecondary">
-                      {student.name} ({student.rollNumber}) - {student.department}
-                    </Typography>
-                  ))}
+                  <Typography variant="body1" fontWeight="bold">{item.subject}</Typography>
+                  <Typography variant="body2">Date: {item.date}</Typography>
                 </CardContent>
               </Card>
             </Grid>
           ))}
         </Grid>
-      </Paper>
+
+        {/* Faculty Assignment */}
+        <Typography variant="h5" fontWeight="bold" mt={4} gutterBottom>
+          🎓 Faculty Exam Duty Allocation
+        </Typography>
+        <Grid container spacing={3}>
+          {facultyAssignments.map((assign, index) => (
+            <Grid item xs={12} sm={6} md={4} key={index}>
+              <Card>
+                <CardContent>
+                  <Typography variant="body1" fontWeight="bold">{assign.faculty}</Typography>
+                  <Typography variant="body2">Assigned to: {assign.room}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
+        {/* Buttons */}
+        <Button onClick={regenerateTimetableAndSeating}>Generate Timetable & Seating</Button>
+        <Button onClick={regenerateFacultyAssignments}>Assign Faculty for Exam Duty</Button>
+
+      </Box>
     </Box>
   );
 };
